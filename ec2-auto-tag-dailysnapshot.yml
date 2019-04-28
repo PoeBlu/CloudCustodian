@@ -1,0 +1,26 @@
+policies:
+- name: ec2-auto-tag-dailysnapshot
+  resource: ec2
+  description: |
+    Triggered when a new EC2 Instance is launched. Checks to see if
+    it's missing the DailySnapshot tag. If missing it gets created
+    with the value of 'true' unless it meets the exception list
+  mode:
+    type: cloudtrail
+    role: arn:aws:iam::{account_id}:role/cross-account-cloud-custodian
+    events:
+      - RunInstances
+  filters:
+    - type: value
+      key: "tag:Name"
+      op: regex
+      value: ^(?!.*prep|.*excluded|.*jump|.*bastion)(.+)$
+      # Match anything that does not contain the strings in the first parenthesis 
+  actions:
+    - type: tag
+      tag: DailySnapshot
+      value: "True"
+
+
+
+      

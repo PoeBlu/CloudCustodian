@@ -1,0 +1,21 @@
+policies:
+- name: efs-auto-tag-awsbackupdaily
+  resource: efs
+  tags: ["type:legacy"] # that policy would only execute against accounts with the "legacy" tag in the config file if used by c7n-org
+  description: |
+    Triggered when a new EFS Instance is launched. Checks to see if
+    it's missing the AWSBackup tag. If missing it gets created
+    with the value of 'true' unless it meets the exception list
+  mode:
+    type: cloudtrail
+    role: arn:aws:iam::{account_id}:role/cross-account-cloud-custodian
+    events:
+      - source: elasticfilesystem.amazonaws.com
+        event: CreateFileSystem
+        ids: "responseElements.fileSystemId"
+    filters:
+    - "tag:AWSBackup": absent
+  actions:
+    - type: tag
+      tag: AWSBackup
+      value: "Daily"

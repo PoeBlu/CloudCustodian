@@ -1,0 +1,19 @@
+policies:
+- name: dynamodb-auto-tag-awsbackup
+  tags: ["type:legacy"]
+  resource: dynamodb-table
+  description: |
+    Triggered when a new DynamboDB table is created. Checks to see if
+    it's missing the AWSBackup tag. If missing it gets created
+    with the value of Daily
+  mode:
+    type: cloudtrail
+    role: arn:aws:iam::{account_id}:role/cross-account-cloud-custodian
+    events:
+          - CreateTable
+  filters:
+    - "tag:AWSBackup": absent
+  actions:
+    - type: tag
+      tag: AWSBackup
+      value: Daily

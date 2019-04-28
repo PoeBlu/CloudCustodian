@@ -1,0 +1,39 @@
+policies:
+  - name: asg-auto-tag-ownercontact
+    resource: asg
+    description: |
+      Tags AutoScaling Groups with OwnerContact tag equal to user's email  
+    mode:
+      type: cloudtrail
+      role: arn:aws:iam::{account_id}:role/cross-account-cloud-custodian
+      events:
+          - CreateAutoScalingGroup
+          # - CreateLaunchConfiguration
+          - UpdateAutoScalingGroup
+    filters:
+      - tag:OwnerContact: absent
+    actions:
+      - type: auto-tag-user
+        tag: OwnerContact
+      - type: propagate-tags
+        tags: 
+          - OwnerContact
+      - type: notify
+        template: custodiandefault.html
+        priority_header: 1
+        subject: "Cloud Custodian -  Non-compliant ASG tags."
+        violation_desc: |
+          "AWS security group allowed unrestricted access to ports [22, 3389].
+          Offending rules were removed"
+        action_desc: "Actions Taken:  Delete and Notify"
+        to:
+            - resource-owner
+            - event-owner # Use it only with cloudtrail mode
+        # owner_absent_contact:
+            - MailRecipientName <mailrecipient@domain.com>
+            #Update MailRecipientName and email address
+        transport:
+          type: sqs
+          queue: https://sqs.ap-southeast-2.amazonaws.com/11111111111/queue-name
+          #Replace 1111111111111/queue-name with name of queue
+          region: ap-southeast-2

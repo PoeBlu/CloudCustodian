@@ -1,0 +1,40 @@
+policies:
+  - name: security-groups-unused-delete
+    resource: security-group
+    description: |
+      Retrieve unused security groups using regex.
+      Notify using Simple Email Service (SES).
+      To get a complete list, use value of .*
+      To get a subset, use a regex pattern. 
+    filters:
+      - unused 
+      - type: value
+        key: GroupName
+        op: regex
+        value: .* 
+    actions:
+      - type: delete
+      - type: notify
+        template: custodiandefault.html
+        priority_header: 1
+        subject: Cloud Custodian - Unused Security Group(s) Found and Deleted.
+        violation_desc: "The Following Security Groups Are Unused and Have been deleted:"
+        action_desc: "Actions Taken:  Delete and Notify"
+        to:
+            - resource-owner
+        owner_absent_contact:
+            - RecipientName <recipientemailaddress@domain.com>
+        transport:
+          type: sqs
+          queue: https://sqs.ap-southeast-2.amazonaws.com/111111111111/queuenamehere
+          region: ap-southeast-2
+      #  # The following action allows to publish all vialotions into AWS SecurityHub
+      #  # https://aws.amazon.com/blogs/opensource/announcing-cloud-custodian-integration-aws-security-hub/
+      # - type: post-finding
+      #   severity_normalized: 10
+      #   types:
+      #     - "Software and Configuration Checks/Industry and Regulatory Standards/NIST CSF Controls (USA)"
+      #   recommendation: "Enable VPC Flow Logs"
+      #   recommendation_url: "https://aws.amazon.com/whitepapers/"
+      #   confidence: 100
+      #   compliance_status: FAILED

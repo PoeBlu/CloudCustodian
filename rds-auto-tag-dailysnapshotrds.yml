@@ -1,0 +1,18 @@
+policies:
+- name: rds-auto-tag-dailysnapshot
+  resource: rds
+  description: |
+    Triggered when a new RDS Instance is launched. Checks to see if
+    it's missing the DailySnapshotRDS tag. If missing it gets created
+    with the value of 'true' unless it meets the exception list
+  mode:
+    type: cloudtrail
+    events:
+      - CreateDBInstance
+    role: arn:aws:iam::{account_id}:role/cross-account-cloud-custodian
+  filters:
+    - "tag:DailySnapshotRDS": absent
+  actions:
+    - type: tag
+      tag: DailySnapshotRDS
+      value: "True"

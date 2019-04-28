@@ -1,0 +1,44 @@
+policies:
+
+  # Remove security group rules with all tcp open to the world
+  - name: security-group-remove-all-ports
+    resource: security-group
+    ## The following line makes c7n-org run only policies with specific tags (c7n-org run -t type:dev )
+    # https://github.com/cloud-custodian/cloud-custodian/tree/master/tools/c7n_org#selecting-accounts-and-policy-for-execution
+    tags: ["env:prod"]
+    # mode:
+    #   type: cloudtrail
+    #   role: arn:aws:iam::{account_id}:role/cross-account-cloud-custodian
+    #   events:
+    #     - source: ec2.amazonaws.com
+    #       event: AuthorizeSecurityGroupIngress
+    #       ids: "requestParameters.groupId"
+    filters:
+      - or:
+          - type: ingress
+            FromPort: 0
+            Cidr:
+              value: 0.0.0.0/0
+          - type: ingress
+            ToPort: 65535
+            Cidr:
+              value: 0.0.0.0/0
+    actions:
+      - type: remove-permissions
+        ingress: matched
+      - type: notify
+        template: custodiandefault.html
+        priority_header: 1
+        subject: "[custodian {{ account }}] Security Group Remediation - {{ region }}"
+        violation_desc: "The following Security Groups are too permisive:"
+        action_desc: "The violating SG(s) remediated"
+        to:
+            - resource-owner
+            #- arn:aws:sns:ap-southeast-2:584407572218:cloud-custodian-mailer
+        # owner_absent_contact:
+            - RecipientName <recipientemailaddress@domain.com>
+        transport:
+          type: sqs
+          queue: https://sqs.ap-southeast-2.amazonaws.com/111111111111/queuenamehere
+          #Update with queue name
+          region: ap-southeast-2

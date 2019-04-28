@@ -1,0 +1,41 @@
+policies:
+      
+- name: security-group-public-notify
+  resource: security-group
+  comment: "Remove rules allowing unrestricted ingress to any port except [80, 443]"
+  filters:
+    - "tag:c7n_security_group_restrict_admin_ingress_exempt": absent
+    - type: ingress
+      OnlyPorts: [443, 80] # *note* OnlyPorts is an inverse match
+
+    - type: ingress
+      Cidr:
+        value_type: cidr
+        op: in
+        value: 0.0.0.0/0
+  mode:
+    type: cloudtrail
+    events:
+      - source: ec2.amazonaws.com
+        event: AuthorizeSecurityGroupIngress
+        ids: "requestParameters.groupId"
+  actions:
+    # - type: remove-permissions
+    #   ingress: matched
+    - type: notify
+      template: custodiandefault.html
+      priority_header: 1
+      subject: "Cloud Custodian -  Public Ingress Rule on non-http ports ![80, 443] has been detected."
+      violation_desc: |
+        "AWS security group allowed unrestricted access to non-http ports ![80, 443]."
+      action_desc: "Actions Taken:  Notify Only"
+      to:
+          - resource-owner
+          # - event-owner # Use it only with cloudtrail mode
+      # owner_absent_contact:
+          - RecipientName <recipientemailaddress@domain.com>
+      transport:
+        type: sqs
+        queue: https://sqs.ap-southeast-2.amazonaws.com/111111111111/queuenamehere
+        #Update with queue name
+        region: ap-southeast-2

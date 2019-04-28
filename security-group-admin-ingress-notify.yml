@@ -1,0 +1,40 @@
+policies:
+      
+- name: security-group-notify-admin-ingress
+  resource: security-group
+  comment: "Remove rules allowing unrestricted ingress to ports [22, 3389]"
+  filters:
+    - "tag:c7n_security_group_restrict_admin_ingress_exempt": absent
+    - type: ingress
+      Ports: [22, 3389]
+      Cidr:
+        value:
+          - "0.0.0.0/0"
+          - "::/0"
+        op: in   
+  mode:
+    type: cloudtrail
+    events:
+      - source: ec2.amazonaws.com
+        event: AuthorizeSecurityGroupIngress
+        ids: "requestParameters.groupId"
+  actions:
+    # - type: remove-permissions
+    #   ingress: matched
+    - type: notify
+      template: custodiandefault.html
+      priority_header: 1
+      subject: "Cloud Custodian -  Ingress to ports [22, 3389] have been detected."
+      violation_desc: |
+        "AWS security group allowed unrestricted access to ports [22, 3389]."
+      action_desc: "Actions Taken:  Notify Only"
+      to:
+          - resource-owner
+          # - event-owner # Use it only with cloudtrail mode
+      # owner_absent_contact:
+          - RecipientName <recipientemailaddress@domain.com>
+      transport:
+        type: sqs
+        queue: https://sqs.ap-southeast-2.amazonaws.com/111111111111/queuenamehere
+        #Update with queue name
+        region: ap-southeast-2
